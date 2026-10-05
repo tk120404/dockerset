@@ -145,7 +145,7 @@
     <nav>
       <a href="#features">Features</a>
       <a href="#widgets">Widgets</a>
-      <a href="#install">Install</a>
+      <a href="#install">Download</a>
       <a href="https://github.com/tk120404/dockerset">GitHub</a>
     </nav>
   </header>
@@ -154,7 +154,8 @@
     <h1>Your Dock, your way.</h1>
     <p>Dockerset is a macOS Dock manager. Save Dock layouts for every context, switch them with a Focus, and add a floating Dock full of live widgets.</p>
     <div class="cta">
-      <a class="btn primary" href="#install">Build &amp; install</a>
+      <a class="btn primary" href="https://github.com/tk120404/dockerset/releases/latest">Download for macOS</a>
+      <a class="btn" href="#install">Install guide</a>
       <a class="btn" href="https://github.com/tk120404/dockerset">View source on GitHub</a>
     </div>
 
@@ -209,22 +210,28 @@
   </section>
 
   <section id="install">
-    <h2>Build &amp; install</h2>
-    <p class="lead">Requires macOS 15 or later and the Swift toolchain. The Xcode Command Line Tools are enough.</p>
+    <h2>Download &amp; install</h2>
+    <p class="lead">Runs on Apple silicon and Intel Macs with macOS 15 or later.</p>
     <div class="steps">
       <div class="step">
-        <h3>Clone the repository</h3>
-<pre><code>git clone https://github.com/tk120404/dockerset.git
-cd dockerset</code></pre>
+        <h3>Download</h3>
+        <p>Get the latest <code>Dockerset-&lt;version&gt;.zip</code> from <a href="https://github.com/tk120404/dockerset/releases/latest">GitHub Releases</a>, unzip it, and move <strong>Dockerset.app</strong> to <strong>Applications</strong>.</p>
       </div>
       <div class="step">
-        <h3>Build and launch</h3>
-<pre><code>scripts/build-app.sh --run</code></pre>
-        <p>The app is built to <code>build/Dockerset.app</code>. Copy it to <code>/Applications</code> to keep it.</p>
+        <h3>Allow it to open (once)</h3>
+        <p>Dockerset isn't notarized by Apple, so macOS asks the first time. Open it, click <strong>Done</strong>, then go to <strong>System Settings → Privacy &amp; Security</strong> and click <strong>Open Anyway</strong>. Or run this in Terminal:</p>
+<pre><code>xattr -dr com.apple.quarantine /Applications/Dockerset.app</code></pre>
       </div>
       <div class="step">
         <h3>Open Settings</h3>
         <p>Settings opens on first launch. Later, right-click the Dockerset Dock, open Dockerset again from Finder or Spotlight, use the menu bar icon, or run <code>open dockerset://settings</code>.</p>
+      </div>
+      <div class="step">
+        <h3>Or build it yourself</h3>
+        <p>Needs the Swift toolchain (the Xcode Command Line Tools are enough).</p>
+<pre><code>git clone https://github.com/tk120404/dockerset.git
+cd dockerset
+scripts/build-app.sh --run</code></pre>
       </div>
     </div>
   </section>

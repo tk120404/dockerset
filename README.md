@@ -4,6 +4,20 @@ A macOS Dock manager: saved Dock layouts, a custom floating Dock with widgets, l
 
 Project site: https://tk120404.github.io/dockerset/
 
+## Download
+
+Get the latest `Dockerset-<version>.zip` from [Releases](https://github.com/tk120404/dockerset/releases/latest). It runs on Apple silicon and Intel Macs with macOS 15 or later.
+
+1. Unzip it and move **Dockerset.app** to **Applications**.
+2. Open it. macOS will say it can't verify the app, because Dockerset isn't notarized by Apple. Click **Done**.
+3. Open **System Settings → Privacy & Security**, scroll down to the message about Dockerset, and click **Open Anyway**.
+
+You only do this once. Prefer the Terminal? This does the same:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Dockerset.app
+```
+
 ## Build & run
 
 Requires macOS 15+ and the Swift toolchain (Command Line Tools are enough, no Xcode needed).
@@ -11,6 +25,7 @@ Requires macOS 15+ and the Swift toolchain (Command Line Tools are enough, no Xc
 ```bash
 scripts/build-app.sh          # builds build/Dockerset.app
 scripts/build-app.sh --run    # builds, then (re)launches it
+scripts/package-release.sh    # universal build zipped for a GitHub Release
 ```
 
 Dockerset runs from the menu bar (dock icon). Settings opens automatically on first launch. After that, any of these opens it:
