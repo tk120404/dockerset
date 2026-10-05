@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dockerset</title>
+<meta name="description" content="Dockerset is a macOS Dock manager: saved layouts, a custom floating Dock with widgets, Focus switching, and backup/restore.">
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --surface-2: #eef0f4;
+    --text: #15171c;
+    --muted: #5b6270;
+    --line: #dfe3ea;
+    --accent: #2f6bff;
+    --accent-ink: #ffffff;
+    --dock: rgba(255, 255, 255, 0.72);
+    --dock-line: rgba(0, 0, 0, 0.08);
+    --code-bg: #eef0f4;
+    --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px rgba(16, 24, 40, 0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0e1014;
+      --surface: #161920;
+      --surface-2: #1d212a;
+      --text: #eceef3;
+      --muted: #9aa2b1;
+      --line: #2a2f3a;
+      --accent: #6d97ff;
+      --accent-ink: #0b0d12;
+      --dock: rgba(30, 34, 44, 0.72);
+      --dock-line: rgba(255, 255, 255, 0.1);
+      --code-bg: #1d212a;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e1014; --surface: #161920; --surface-2: #1d212a; --text: #eceef3; --muted: #9aa2b1;
+    --line: #2a2f3a; --accent: #6d97ff; --accent-ink: #0b0d12; --dock: rgba(30, 34, 44, 0.72);
+    --dock-line: rgba(255, 255, 255, 0.1); --code-bg: #1d212a;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, pre { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; font-size: 0.9em; }
+  code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 5px; }
+  pre { background: var(--code-bg); padding: 14px 16px; border-radius: 10px; overflow-x: auto; margin: 0; }
+  pre code { background: none; padding: 0; }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+  header.top { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; color: var(--text); }
+  .brand svg { width: 28px; height: 28px; }
+  nav a { color: var(--muted); margin-left: 18px; font-size: 15px; }
+  nav a:first-child { margin-left: 0; }
+
+  .hero { text-align: center; padding: 56px 0 24px; }
+  .hero h1 { font-size: clamp(34px, 6vw, 56px); line-height: 1.08; letter-spacing: -0.02em; margin: 0 0 16px; }
+  .hero p { color: var(--muted); font-size: clamp(17px, 2.2vw, 20px); max-width: 640px; margin: 0 auto 28px; }
+  .cta { display: inline-flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
+  .btn { display: inline-block; padding: 11px 18px; border-radius: 10px; font-weight: 600; font-size: 15px; border: 1px solid var(--line); color: var(--text); background: var(--surface); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+  .btn:hover { text-decoration: none; filter: brightness(1.05); }
+
+  /* Dock mock-up */
+  .stage {
+    margin: 40px auto 0; padding: 70px 16px 22px; border-radius: 22px; overflow: hidden;
+    background: linear-gradient(135deg, #5b7cfa 0%, #8a63d2 45%, #2bb6a3 100%);
+    display: flex; justify-content: center;
+  }
+  .dock {
+    display: flex; align-items: center; gap: 8px; padding: 9px; max-width: 100%; overflow-x: auto;
+    background: var(--dock); border: 1px solid var(--dock-line); border-radius: 20px;
+    -webkit-backdrop-filter: blur(20px) saturate(1.6); backdrop-filter: blur(20px) saturate(1.6);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  }
+  .tile { flex: 0 0 auto; width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center; color: #fff; font-weight: 700; font-size: 18px; }
+  .gap { flex: 0 0 auto; width: 14px; }
+  .w { flex: 0 0 auto; height: 48px; border-radius: 12px; background: rgba(127, 127, 127, 0.14); display: flex; align-items: center; gap: 8px; padding: 0 10px; font-size: 12px; color: var(--text); white-space: nowrap; }
+  .w b { font-size: 15px; display: block; line-height: 1.1; }
+  .w small { color: var(--muted); }
+  .ring { width: 30px; height: 30px; border-radius: 50%; background: conic-gradient(#f59e0b 0 70%, rgba(127,127,127,0.25) 70% 100%); display: grid; place-items: center; }
+  .ring::after { content: ""; width: 22px; height: 22px; border-radius: 50%; background: var(--dock); }
+  .ring.green { background: conic-gradient(#22c55e 0 85%, rgba(127,127,127,0.25) 85% 100%); }
+  .weather { background: linear-gradient(#3f8cf2, #1f63d0); color: #fff; }
+  .weather small { color: rgba(255, 255, 255, 0.8); }
+  .water { background: linear-gradient(#69b3fb, #3f84e5); color: #fff; justify-content: center; text-align: center; }
+  .water small { color: rgba(255, 255, 255, 0.85); }
+  .sticky { background: #fef49c; color: #222; }
+  .folder { position: relative; background: none; }
+  .folder::before { content: ""; position: absolute; inset: 10px 4px 6px; border-radius: 6px; background: currentColor; }
+  .folder::after { content: ""; position: absolute; left: 6px; top: 6px; width: 16px; height: 8px; border-radius: 3px 3px 0 0; background: currentColor; }
+  .folder span { position: relative; z-index: 1; color: #fff; margin-top: 6px; }
+
+  section { padding: 56px 0 8px; }
+  section > h2 { font-size: clamp(24px, 3.4vw, 32px); letter-spacing: -0.01em; margin: 0 0 8px; }
+  section > p.lead { color: var(--muted); margin: 0 0 24px; max-width: 680px; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; box-shadow: var(--shadow); }
+  .card h3 { margin: 0 0 6px; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+  .ico { width: 28px; height: 28px; border-radius: 8px; display: inline-grid; place-items: center; background: var(--surface-2); font-size: 15px; }
+
+  .steps { counter-reset: s; display: grid; gap: 14px; }
+  .step { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  .step h3 { margin: 0 0 10px; font-size: 16px; }
+  .step h3::before { counter-increment: s; content: counter(s); display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-size: 13px; margin-right: 8px; }
+  .step p { margin: 10px 0 0; color: var(--muted); font-size: 15px; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; font-size: 15px; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  th { background: var(--surface-2); font-weight: 600; }
+  td:first-child { white-space: nowrap; }
+  .table-wrap { overflow-x: auto; border-radius: 14px; }
+
+  footer { color: var(--muted); font-size: 14px; padding: 48px 0 40px; border-top: 1px solid var(--line); margin-top: 56px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+
+  @media (max-width: 560px) {
+    nav { display: none; }
+    .stage { padding: 40px 10px 14px; }
+    td:first-child { white-space: normal; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="#">
+      <svg viewBox="0 0 28 28" aria-hidden="true"><rect x="2" y="15" width="24" height="10" rx="4" fill="currentColor" opacity=".18"/><rect x="5" y="17" width="5" height="5" rx="1.5" fill="#2f6bff"/><rect x="11.5" y="17" width="5" height="5" rx="1.5" fill="#f59e0b"/><rect x="18" y="17" width="5" height="5" rx="1.5" fill="#22c55e"/></svg>
+      Dockerset
+    </a>
+    <nav>
+      <a href="#features">Features</a>
+      <a href="#widgets">Widgets</a>
+      <a href="#install">Install</a>
+      <a href="https://github.com/tk120404/dockerset">GitHub</a>
+    </nav>
+  </header>
+
+  <div class="hero">
+    <h1>Your Dock, your way.</h1>
+    <p>Dockerset is a macOS Dock manager. Save Dock layouts for every context, switch them with a Focus, and add a floating Dock full of live widgets.</p>
+    <div class="cta">
+      <a class="btn primary" href="#install">Build &amp; install</a>
+      <a class="btn" href="https://github.com/tk120404/dockerset">View source on GitHub</a>
+    </div>
+
+    <div class="stage" aria-label="Illustration of the Dockerset Dock with apps, folders and widgets">
+      <div class="dock">
+        <div class="tile" style="background:linear-gradient(#5ac8fa,#1e7cf2)">☺</div>
+        <div class="tile folder" style="color:#ef4444"><span>G</span></div>
+        <div class="tile folder" style="color:#22c55e"><span>P</span></div>
+        <div class="gap"></div>
+        <div class="w"><div class="ring"></div><div><b>12:30</b><small>Focus</small></div></div>
+        <div class="w water" style="width:110px"><div><b>30:00</b><small>Next drink</small></div></div>
+        <div class="w weather"><div><b>26°C</b><small>Lisbon</small></div></div>
+        <div class="w"><div class="ring green"></div><div><b>85%</b><small>Codex</small></div></div>
+        <div class="w sticky" style="width:120px">Ship it.<br>Take a walk.</div>
+        <div class="gap"></div>
+        <div class="tile" style="background:linear-gradient(#34c759,#1f9d47)">✉</div>
+        <div class="tile" style="background:linear-gradient(#ff9f0a,#e8590c)">✎</div>
+      </div>
+    </div>
+  </div>
+
+  <section id="features">
+    <h2>Features</h2>
+    <p class="lead">Everything runs locally on your Mac. Dockerset lives in the menu bar and never needs an account.</p>
+    <div class="grid">
+      <div class="card"><h3><span class="ico">🗂</span>Saved layouts</h3><p>Keep separate sets of apps, folders, links, spacers and widgets for work, home or anything else. Capture your current macOS Dock in one click.</p></div>
+      <div class="card"><h3><span class="ico">🖥</span>Native, custom, or both</h3><p>Rewrite the macOS Dock when you switch layouts, replace it with the Dockerset Dock, or run both side by side.</p></div>
+      <div class="card"><h3><span class="ico">🌙</span>Focus switching</h3><p>Pair a layout with a macOS Focus through a Shortcuts automation that opens <code>dockerset://layout/Work</code>.</p></div>
+      <div class="card"><h3><span class="ico">🎨</span>Appearance</h3><p>Icon size, position, Liquid Glass and other materials, opacity, corner radius, magnification and auto-hide. Icons shrink to fit, like the macOS Dock.</p></div>
+      <div class="card"><h3><span class="ico">📁</span>Folders that look like Finder</h3><p>Folder stacks, the folder's initial on its icon, and Finder tag colours.</p></div>
+      <div class="card"><h3><span class="ico">↔</span>Scroll area</h3><p>Send any icons into a compact strip with ‹ › arrows to keep a long Dock tidy.</p></div>
+      <div class="card"><h3><span class="ico">🪟</span>Windows, like the Dock</h3><p>Right-click an app for its window list, New Window, and Show All. Minimized windows appear in the Dock and restore in a click.</p></div>
+      <div class="card"><h3><span class="ico">💾</span>Backup &amp; move</h3><p>Export layouts and settings (optionally with your macOS Dock) and restore them later or on another Mac.</p></div>
+      <div class="card"><h3><span class="ico">🛟</span>Safe by design</h3><p>Your original macOS Dock is saved before the first change, and a watchdog brings it back if Dockerset ever quits unexpectedly.</p></div>
+    </div>
+  </section>
+
+  <section id="widgets">
+    <h2>Widgets</h2>
+    <p class="lead">Live information right in the Dock. Click any widget for details.</p>
+    <div class="grid">
+      <div class="card"><h3><span class="ico">🎵</span>Now Playing</h3><p>Track, artist, artwork and controls for Spotify and Apple Music.</p></div>
+      <div class="card"><h3><span class="ico">📅</span>Calendar &amp; Reminders</h3><p>Your next event with a Join button for Zoom, Meet and Teams links, plus reminders you can tick off.</p></div>
+      <div class="card"><h3><span class="ico">⛅</span>Weather</h3><p>Current location or a chosen city, °C or °F, and a forecast as wide as you like.</p></div>
+      <div class="card"><h3><span class="ico">🔋</span>Battery</h3><p>Rings for your Mac, AirPods, keyboards, mice and trackpads.</p></div>
+      <div class="card"><h3><span class="ico">🗒</span>Sticky Notes</h3><p>Your Stickies notes, shown directly in their colours.</p></div>
+      <div class="card"><h3><span class="ico">⏱</span>Focus Timer</h3><p>A Pomodoro timer with automatic breaks and a notification at the end of each session.</p></div>
+      <div class="card"><h3><span class="ico">💧</span>Hydration</h3><p>A countdown to your next glass of water, with a daily goal.</p></div>
+      <div class="card"><h3><span class="ico">⚡</span>Shortcuts</h3><p>Run your macOS Shortcuts with one click.</p></div>
+      <div class="card"><h3><span class="ico">📈</span>AI Limits &amp; Activity</h3><p>Remaining allowance and reset times for Claude, Codex and Copilot, plus token history from local Claude Code and Codex logs.</p></div>
+    </div>
+  </section>
+
+  <section id="install">
+    <h2>Build &amp; install</h2>
+    <p class="lead">Requires macOS 15 or later and the Swift toolchain. The Xcode Command Line Tools are enough.</p>
+    <div class="steps">
+      <div class="step">
+        <h3>Clone the repository</h3>
+<pre><code>git clone https://github.com/tk120404/dockerset.git
+cd dockerset</code></pre>
+      </div>
+      <div class="step">
+        <h3>Build and launch</h3>
+<pre><code>scripts/build-app.sh --run</code></pre>
+        <p>The app is built to <code>build/Dockerset.app</code>. Copy it to <code>/Applications</code> to keep it.</p>
+      </div>
+      <div class="step">
+        <h3>Open Settings</h3>
+        <p>Settings opens on first launch. Later, right-click the Dockerset Dock, open Dockerset again from Finder or Spotlight, use the menu bar icon, or run <code>open dockerset://settings</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="urls">
+    <h2>URL scheme</h2>
+    <p class="lead">Use these from Shortcuts, scripts or Focus automations.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>URL</th><th>What it does</th></tr>
+        <tr><td><code>dockerset://layout/&lt;name&gt;</code></td><td>Switch to a layout (case-insensitive; percent-encode spaces)</td></tr>
+        <tr><td><code>dockerset://next</code></td><td>Cycle to the next layout</td></tr>
+        <tr><td><code>dockerset://mode/native|custom|both</code></td><td>Choose which Dock is shown</td></tr>
+        <tr><td><code>dockerset://settings</code></td><td>Open Settings</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <section id="privacy">
+    <h2>Permissions &amp; privacy</h2>
+    <p class="lead">macOS asks for each permission the first time a feature needs it. Nothing leaves your Mac except weather requests to Open-Meteo and, if you enable Copilot limits, a call through your own GitHub CLI login.</p>
+    <div class="table-wrap">
+      <table>
+        <tr><th>Permission</th><th>Used for</th></tr>
+        <tr><td>Accessibility</td><td>App window lists, restoring minimized windows</td></tr>
+        <tr><td>Calendars &amp; Reminders</td><td>Calendar widget</td></tr>
+        <tr><td>Location</td><td>Weather for your current location</td></tr>
+        <tr><td>Automation (Spotify, Music)</td><td>Now Playing widget</td></tr>
+        <tr><td>Notifications</td><td>Focus Timer and Hydration reminders</td></tr>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <span>Dockerset · Built with Swift and SwiftUI</span>
+    <a href="https://github.com/tk120404/dockerset">github.com/tk120404/dockerset</a>
+  </footer>
+</div>
+</body>
+</html>
