@@ -64,3 +64,7 @@ The build is ad-hoc signed, so macOS treats every rebuild as a new app. You may 
 
 - More AI providers (Cursor, Gemini CLI)
 - Multi-display support (the custom Dock currently lives on the main display)
+
+## License
+
+MIT. See [LICENSE](LICENSE).
